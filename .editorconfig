@@ -1,0 +1,36 @@
+root = true
+
+[*]
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+end_of_line = lf
+
+[*.csproj]
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+end_of_line = lf
+
+[*.cs]
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+end_of_line = lf
+
+# Always use explicit types for readabiliy
+csharp_style_var_for_built_in_types = false
+csharp_style_var_when_type_is_apparent = false
+csharp_style_var_elsewhere = false
+
+# Exclude structs from public instance field warnings
+dotnet_code_quality.ca1051.exclude_structs = true
+
+# This often ends up looking really stupid, so we disable it
+csharp_style_prefer_primary_constructors = false
+
+# Coalescing complex null checks can make code unreadably long
+dotnet_style_coalesce_expression = false
