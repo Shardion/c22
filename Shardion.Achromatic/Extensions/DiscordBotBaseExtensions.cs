@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using System;
 using Disqord;
 using Disqord.Bot;
 using Disqord.Gateway;

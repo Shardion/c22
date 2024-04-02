@@ -11,10 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using LiteDB;
 using Shardion.Achromatic.Configuration;
 using Disqord;
-using Shardion.Achromatic.Features.Anomaly.Shop;
-using Shardion.Achromatic.Features.Anomaly.Anomalies;
-using System.Threading;
-using Shardion.Achromatic.Common.Timers;
 using Flurl.Util;
 
 namespace Shardion.Achromatic

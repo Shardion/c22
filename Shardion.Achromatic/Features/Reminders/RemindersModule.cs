@@ -1,31 +1,16 @@
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
-using Disqord;
 using Disqord.Bot.Commands.Application;
-using Disqord.Rest;
 using Flurl.Util;
 using LiteDB;
 using Qmmands;
-using Qommon;
 using Shardion.Achromatic.Common.Timers;
 
 namespace Shardion.Achromatic.Features.Reminders
 {
     public class RemindersModule : DiscordApplicationGuildModuleBase
     {
-        private static readonly string[] REMINDER_TEXT_PLACEHOLDERS =
-        [
-            "Scary rumor: I'm working on a song named GHOUL",
-            "I've come to make an announcement.",
-            "[object Object]",
-            "undefined",
-            "In the boundless expanse of the multiverse,",
-            "<:22:773603249633755186>",
-            "https://cdn.discordapp.com/attachments/712427632632791050/1221865793889898667/caption.gif?ex=66142232&is=6601ad32&hm=fec8fd2101ad3c318c6e5f93a81091494129931b772098953d83859fe6ec8269&",
-            "https://cdn.discordapp.com/attachments/712427632632791050/1223311940017983701/caption.gif?ex=66196506&is=6606f006&hm=4a98fc5c3cc13a4192aba52ed8a7dffb5e73cc1422d1c680baab99bae84c013e&",
-        ];
-
         [SlashCommand("remind")]
         [Description("Pings you at a specified time in the future, with optional reminder text.")]
         public ValueTask<IResult> Remind(string time, string text)
