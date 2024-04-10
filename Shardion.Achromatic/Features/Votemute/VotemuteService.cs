@@ -22,24 +22,30 @@ namespace Shardion.Achromatic.Features.Votemute
     public class VotemuteService : DiscordBotService
     {
         public ConcurrentDictionary<Snowflake, VotemuteMessageStatus> MessageHorseCounter = [];
-        private readonly Mutex _gcMutex = new();
         private readonly OptionsMultiplexer _options;
+        private readonly System.Timers.Timer _gcTimer;
 
         public VotemuteService(OptionsMultiplexer options)
         {
             _options = options;
+            _gcTimer = new()
+            {
+                AutoReset = true,
+                Enabled = false,
+                Interval = TimeSpan.FromMinutes(15).TotalMilliseconds,
+            };
+            _gcTimer.Elapsed += (_, _) =>
+            {
+                _ = Task.Run(async () => await GarbageCollectStatuses());
+            };
+            _gcTimer.Start();
         }
 
         protected override async ValueTask OnReactionAdded(ReactionAddedEventArgs e)
         {
-            if (e.MessageId is Snowflake messageId && e.ChannelId is Snowflake channelId && e.Member is IMember member)
+            if (e.MessageId is Snowflake messageId && e.ChannelId is Snowflake channelId && e.Member is IMember addingMember)
             {
-                VotemuteOptions? options = _options.Get<VotemuteOptions>(OptionsAccessibility.Everyone, null, e.GuildId);
-                if (options is null || !options.Enabled)
-                {
-                    return;
-                }
-
+                VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Servers, null, e.GuildId) ?? new();
                 if (e.Emoji.Name == options.Emoji)
                 {
                     IMessage? message = await Bot.GetOrFetchMessage(channelId, messageId);
@@ -53,15 +59,37 @@ namespace Shardion.Achromatic.Features.Votemute
                         return;
                     }
 
-                    await AddMuteReaction(member, message);
+                    await AddMuteReaction(addingMember, message);
+                }
+            }
+        }
 
-                    if (_gcMutex.WaitOne(250))
-                    {
-                        // Reactions are very rare in Ench, so waiting on this is *probably* fine.
-                        // This method should not take very long to complete.
-                        await GarbageCollectStatuses();
-                        _gcMutex.ReleaseMutex();
-                    }
+        private async ValueTask AddMuteReaction(IMember addingMember, IMessage message, CancellationToken cancellationToken = default)
+        {
+            VotemuteMessageStatus newStatus;
+            if (MessageHorseCounter.TryGetValue(message.Id, out VotemuteMessageStatus? nullableStatus) && nullableStatus is VotemuteMessageStatus status)
+            {
+                newStatus = status;
+            }
+            else
+            {
+                newStatus = new()
+                {
+                    CreationTimestamp = message.CreatedAt()
+                };
+            }
+
+            bool addingMemberHasNotReactedBefore = newStatus.Reactors.Add(addingMember.Id);
+            bool addingMemberIsNotSender = message.Author.Id != addingMember.Id;
+            bool messageNotOld = !newStatus.Old;
+            if (addingMemberHasNotReactedBefore && addingMemberIsNotSender && messageNotOld)
+            {
+                MessageHorseCounter[message.Id] = newStatus;
+
+                VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Servers, null, addingMember.GuildId) ?? new();
+                if (newStatus.Reactors.Count >= options.NumReactions)
+                {
+                    await Mute(addingMember, MuteReason.ReachedReactionThreshold, cancellationToken);
                 }
             }
         }
@@ -77,74 +105,22 @@ namespace Shardion.Achromatic.Features.Votemute
                 return;
             }
 
-            VotemuteOptions? options = _options.Get<VotemuteOptions>(OptionsAccessibility.Everyone, null, e.GuildId);
-            if (options is null || !options.Enabled)
-            {
-                return;
-            }
-
-
             if (MessageHorseCounter.TryGetValue(e.MessageId, out VotemuteMessageStatus? nullableStatus) && nullableStatus is VotemuteMessageStatus status)
             {
-                if (status.Reactions > (options.NumReactions / 2.0) && status.Reactions < options.NumReactions)
+                if (!status.Old)
                 {
-                    await Mute(member, MuteReason.DeletedMessageWithReaction);
+                    VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Servers, null, e.GuildId) ?? new();
+                    if (status.Reactors.Count > (options.NumReactions / 2.0) && status.Reactors.Count < options.NumReactions)
+                    {
+                        await Mute(member, MuteReason.DeletedMessageWithReaction);
+                    }
                 }
-            }
-        }
-
-        private bool IsStatusTooOld(Snowflake messageId)
-        {
-            if (MessageHorseCounter[messageId].CreationTimestamp.AddMinutes(10) < DateTime.UtcNow)
-            {
-                return true;
-            }
-            return false;
-        }
-
-        private async Task GarbageCollectStatuses(CancellationToken cancellationToken = default)
-        {
-            ConcurrentBag<Snowflake> collectableStatusKeys = [];
-            IEnumerable<KeyValuePair<Snowflake, VotemuteMessageStatus>> collectableStatuses = MessageHorseCounter.Where((status) => IsStatusTooOld(status.Key));
-            await Parallel.ForEachAsync(collectableStatuses, (pair, token) =>
-            {
-                collectableStatusKeys.Add(pair.Key);
-                return ValueTask.CompletedTask;
-            });
-            await Parallel.ForEachAsync(collectableStatusKeys, cancellationToken, (id, token) =>
-            {
-                MessageHorseCounter.Remove(id, out _);
-                return ValueTask.CompletedTask;
-            });
-        }
-
-        private async ValueTask AddMuteReaction(IMember member, IMessage message, int horses = 1, CancellationToken cancellationToken = default)
-        {
-            VotemuteMessageStatus newStatus = new()
-            {
-                CreationTimestamp = message.CreatedAt()
-            };
-            MessageHorseCounter[message.Id].Reactions = MessageHorseCounter.GetOrAdd(message.Id, newStatus).Reactions + horses;
-
-            VotemuteOptions? options = _options.Get<VotemuteOptions>(OptionsAccessibility.Everyone, null, member.GuildId);
-            if (options is null)
-            {
-                return;
-            }
-
-            if (!IsStatusTooOld(message.Id) && MessageHorseCounter[message.Id].Reactions >= options.NumReactions)
-            {
-                await Mute(member, MuteReason.ReachedReactionThreshold, cancellationToken);
             }
         }
 
         private async ValueTask Mute(IMember member, MuteReason reason, CancellationToken cancellationToken = default)
         {
-            VotemuteOptions? options = _options.Get<VotemuteOptions>(OptionsAccessibility.Everyone, null, member.GuildId);
-            if (options is null)
-            {
-                return;
-            }
+            VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Servers, null, member.GuildId) ?? new();
 
             IRestRequestOptions opt = new DefaultRestRequestOptions()
                 .WithReason(reason switch
@@ -160,9 +136,20 @@ namespace Shardion.Achromatic.Features.Votemute
             }, opt, cancellationToken: cancellationToken);
         }
 
-        ~VotemuteService()
+        private async Task GarbageCollectStatuses(CancellationToken cancellationToken = default)
         {
-            _gcMutex.Dispose();
+            ConcurrentBag<Snowflake> collectableStatusKeys = [];
+            IEnumerable<KeyValuePair<Snowflake, VotemuteMessageStatus>> collectableStatuses = MessageHorseCounter.Where((status) => status.Value.Old);
+            await Parallel.ForEachAsync(collectableStatuses, (pair, token) =>
+            {
+                collectableStatusKeys.Add(pair.Key);
+                return ValueTask.CompletedTask;
+            });
+            await Parallel.ForEachAsync(collectableStatusKeys, cancellationToken, (id, token) =>
+            {
+                MessageHorseCounter.Remove(id, out _);
+                return ValueTask.CompletedTask;
+            });
         }
     }
 }
