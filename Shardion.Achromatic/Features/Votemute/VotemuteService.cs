@@ -66,6 +66,8 @@ namespace Shardion.Achromatic.Features.Votemute
 
         private async ValueTask AddMuteReaction(IMember addingMember, IMessage message, CancellationToken cancellationToken = default)
         {
+            Task<IMember?> targetMemberTask = Bot.GetOrFetchMember(addingMember.GuildId, message.Author.Id);
+
             VotemuteMessageStatus newStatus;
             if (MessageHorseCounter.TryGetValue(message.Id, out VotemuteMessageStatus? nullableStatus) && nullableStatus is VotemuteMessageStatus status)
             {
@@ -89,7 +91,10 @@ namespace Shardion.Achromatic.Features.Votemute
                 VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Internal, null, addingMember.GuildId) ?? new();
                 if (newStatus.Reactors.Count >= options.NumReactions)
                 {
-                    await Mute(addingMember, MuteReason.ReachedReactionThreshold, cancellationToken);
+                    if (await targetMemberTask is IMember targetMember)
+                    {
+                        await Mute(targetMember, MuteReason.ReachedReactionThreshold, cancellationToken);
+                    }
                 }
             }
         }
