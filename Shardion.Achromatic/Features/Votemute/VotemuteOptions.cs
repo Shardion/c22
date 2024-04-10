@@ -5,7 +5,7 @@ namespace Shardion.Achromatic.Features.Votemute
     public sealed class VotemuteOptions : IBindableOptions
     {
         public string GetSectionName() => "Votemute";
-        public OptionsAccessibility GetAccessibility() => OptionsAccessibility.Servers;
+        public OptionsAccessibility GetAccessibility() => OptionsAccessibility.Internal;
 
         public bool Enabled { get; set; } = true;
         public string Emoji { get; set; } = "🐴";

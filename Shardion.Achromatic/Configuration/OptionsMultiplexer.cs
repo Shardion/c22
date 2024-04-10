@@ -20,8 +20,8 @@ namespace Shardion.Achromatic.Configuration
         public TOptions? Get<TOptions>(OptionsAccessibility accessibility, ulong? userId, ulong? serverId) where TOptions : class, IBindableOptions, new()
         {
             TOptions options = GetInternal<TOptions>(userId, serverId) ?? new();
-            OptionsAccessibility optionsAccessibility = options.GetAccessibility();
-            if (optionsAccessibility == accessibility || optionsAccessibility == OptionsAccessibility.Everyone || optionsAccessibility == OptionsAccessibility.NoOne)
+            OptionsAccessibility requiredAccessibility = options.GetAccessibility();
+            if (accessibility == requiredAccessibility || accessibility == OptionsAccessibility.Internal)
             {
                 return options;
             }
@@ -35,8 +35,8 @@ namespace Shardion.Achromatic.Configuration
             {
                 if (GetInternal(type, userId, serverId) is TOptions options)
                 {
-                    OptionsAccessibility optionsAccessibility = options.GetAccessibility();
-                    if (optionsAccessibility == accessibility || optionsAccessibility == OptionsAccessibility.Everyone)
+                    OptionsAccessibility requiredAccessibility = options.GetAccessibility();
+                    if (requiredAccessibility == accessibility || requiredAccessibility == OptionsAccessibility.Internal)
                     {
                         gotOptions.Add(options);
                     }

@@ -45,7 +45,7 @@ namespace Shardion.Achromatic.Features.Votemute
         {
             if (e.MessageId is Snowflake messageId && e.ChannelId is Snowflake channelId && e.Member is IMember addingMember)
             {
-                VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Servers, null, e.GuildId) ?? new();
+                VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Internal, null, e.GuildId) ?? new();
                 if (e.Emoji.Name == options.Emoji)
                 {
                     IMessage? message = await Bot.GetOrFetchMessage(channelId, messageId);
@@ -86,7 +86,7 @@ namespace Shardion.Achromatic.Features.Votemute
             {
                 MessageHorseCounter[message.Id] = newStatus;
 
-                VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Servers, null, addingMember.GuildId) ?? new();
+                VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Internal, null, addingMember.GuildId) ?? new();
                 if (newStatus.Reactors.Count >= options.NumReactions)
                 {
                     await Mute(addingMember, MuteReason.ReachedReactionThreshold, cancellationToken);
@@ -109,7 +109,7 @@ namespace Shardion.Achromatic.Features.Votemute
             {
                 if (!status.Old)
                 {
-                    VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Servers, null, e.GuildId) ?? new();
+                    VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Internal, null, e.GuildId) ?? new();
                     if (status.Reactors.Count > (options.NumReactions / 2.0) && status.Reactors.Count < options.NumReactions)
                     {
                         await Mute(member, MuteReason.DeletedMessageWithReaction);
@@ -120,7 +120,7 @@ namespace Shardion.Achromatic.Features.Votemute
 
         private async ValueTask Mute(IMember member, MuteReason reason, CancellationToken cancellationToken = default)
         {
-            VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Servers, null, member.GuildId) ?? new();
+            VotemuteOptions options = _options.Get<VotemuteOptions>(OptionsAccessibility.Internal, null, member.GuildId) ?? new();
 
             IRestRequestOptions opt = new DefaultRestRequestOptions()
                 .WithReason(reason switch

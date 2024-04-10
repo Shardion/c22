@@ -18,10 +18,9 @@ namespace Shardion.Achromatic.Features.Irresolution
 
         [SlashCommand("settings")]
         [Description("View and change settings.")]
-        public ValueTask<IResult> Settings(bool server)
+        public ValueTask<IResult> Settings()
         {
-            OptionsAccessibility acc = server ? OptionsAccessibility.Servers : OptionsAccessibility.Users;
-            IReadOnlyCollection<IBindableOptions> opts = _opt.GetMany<IBindableOptions>(acc, Context.AuthorId, Context.GuildId);
+            IReadOnlyCollection<IBindableOptions> opts = _opt.GetMany<IBindableOptions>(OptionsAccessibility.Public, Context.AuthorId, Context.GuildId);
 
             return ValueTask.FromResult<IResult>(Menu(new IrresolutionSettingsMenu(opts, new IrresolutionSettingsView(opts.First()), Context.Interaction)));
         }

@@ -147,7 +147,7 @@ namespace Shardion.Achromatic.Features.Reminders
                         }
                         else
                         {
-                            RemindersOptions remindersOptions = opt.Get<RemindersOptions>(OptionsAccessibility.NoOne, null, null) ?? new();
+                            RemindersOptions remindersOptions = opt.Get<RemindersOptions>(OptionsAccessibility.Internal, null, null) ?? new();
                             if (await Bot.GetOrFetchChannel(remindersOptions.UnknownReminderGuildId, remindersOptions.UnknownReminderChannelId) is IMessageChannel validFallbackChannel)
                             {
                                 await validFallbackChannel.SendMessageAsync(preparedMessage);

@@ -3,7 +3,7 @@ namespace Shardion.Achromatic.Configuration
     public sealed class IdentityOptions : IBindableOptions
     {
         public string GetSectionName() => "Identity";
-        public OptionsAccessibility GetAccessibility() => OptionsAccessibility.NoOne;
+        public OptionsAccessibility GetAccessibility() => OptionsAccessibility.Internal;
 
         public ulong? PrimaryDeveloperID { get; set; } = null;
         public ulong? PrimaryDevelopmentServerID { get; set; } = null;
