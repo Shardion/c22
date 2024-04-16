@@ -17,9 +17,15 @@ namespace Shardion.Achromatic.Features.Reminders
         {
             // string reminderText = text.GetValueOrDefault(REMINDER_TEXT_PLACEHOLDERS[Random.Shared.Next(REMINDER_TEXT_PLACEHOLDERS.Length)]);
 
-            if (ParseRelativeTime(time) is not DateTimeOffset parsedTime)
+            DateTimeOffset? nullableParsedTime = ParseRelativeTime(time);
+
+            if (nullableParsedTime is not DateTimeOffset parsedTime)
             {
-                return ValueTask.FromResult<IResult>(Response("Invalid time. ^(Tip: Specifying with months and beyond are not supported! Use a number of days or weeks!)"));
+                return ValueTask.FromResult<IResult>(Response("Invalid time."));
+            }
+            if (parsedTime < DateTimeOffset.UtcNow)
+            {
+                return ValueTask.FromResult<IResult>(Response("Specified time has already passed."));
             }
 
             BsonDocument timerInfo = new()
@@ -38,7 +44,7 @@ namespace Shardion.Achromatic.Features.Reminders
             };
             timer.Start();
 
-            return ValueTask.FromResult<IResult>(Response($"Reminder set for **<t:{parsedTime.ToUnixTimeSeconds()}:F>**!"));
+            return ValueTask.FromResult<IResult>(Response($"Reminder set for **<t:{parsedTime.ToUnixTimeSeconds()}:F>**!\n> {text}"));
         }
 
         private static DateTimeOffset? ParseRelativeTime(string reminderTime)
@@ -77,10 +83,7 @@ namespace Shardion.Achromatic.Features.Reminders
             {
                 return null;
             }
-            else
-            {
-                return DateTimeOffset.UtcNow + parsedTime;
-            }
+            return DateTimeOffset.UtcNow + parsedTime;
         }
 
         private static TimeSpan? ParseSeconds(string part)
